@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Building2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, Building2, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
+import { APP_CONFIG } from '../config/env';
 
 interface LoginForm {
   email: string;
@@ -13,12 +14,13 @@ interface LoginForm {
 interface LoginResponse {
   success: boolean;
   message: string;
-  data: {
+  data?: {
     admin: {
       id: string;
       email: string;
       fullName: string;
       role: string;
+      isActive: boolean;
     };
     tokens: {
       accessToken: string;
@@ -89,14 +91,14 @@ const LoginPage: React.FC = () => {
     try {
       const data = await apiService.adminLogin(formData.email, formData.password) as LoginResponse;
 
-      if (data.success) {
+      if (data.success && data.data) {
         setSuccess('Login successful! Redirecting...');
         
         // Use the auth context to login
         login(
-          data.data!.admin,
-          data.data!.tokens.accessToken,
-          data.data!.tokens.refreshToken
+          data.data.admin,
+          data.data.tokens.accessToken, // Use the single token as access token
+          data.data.tokens.refreshToken  // Use the same token as refresh token for now
         );
         
         // Redirect to dashboard after a short delay
@@ -122,7 +124,7 @@ const LoginPage: React.FC = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-full mb-4">
             <Building2 className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">HosFind Admin</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{APP_CONFIG.NAME}</h1>
           <p className="text-muted-foreground">Sign in to your admin account</p>
         </div>
 
@@ -197,7 +199,7 @@ const LoginPage: React.FC = () => {
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">
-                  <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
+                  <Loader2 className="w-5 h-5 text-primary-foreground animate-spin" />
                 </div>
               ) : (
                 'Sign In'
@@ -215,8 +217,8 @@ const LoginPage: React.FC = () => {
 
         {/* Footer */}
         <div className="text-center mt-6">
-          <p className="text-sm text-muted-foreground">
-            © 2024 HosFind. All rights reserved.
+          <p className="text-center text-sm text-muted-foreground mt-8">
+            © 2025 {APP_CONFIG.NAME}. All rights reserved.
           </p>
         </div>
       </div>
