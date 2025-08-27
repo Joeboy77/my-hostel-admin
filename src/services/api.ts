@@ -224,6 +224,10 @@ class ApiService {
     return this.request(`/admin/notifications/${id}/read`, { method: 'PATCH' });
   }
 
+  async testPushNotification() {
+    return this.request('/admin/test-push-notification', { method: 'POST' });
+  }
+
   // Settings Management Methods
   async getAdminProfile() {
     return this.request('/admin/profile', { method: 'GET' });
