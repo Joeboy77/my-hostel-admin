@@ -33,22 +33,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const storedAccessToken = localStorage.getItem('admin_access_token');
-    const storedRefreshToken = localStorage.getItem('admin_refresh_token');
-    const storedAdminData = localStorage.getItem('admin_data');
+    const checkAuthStatus = () => {
+      const storedAccessToken = localStorage.getItem('admin_access_token');
+      const storedRefreshToken = localStorage.getItem('admin_refresh_token');
+      const storedAdminData = localStorage.getItem('admin_data');
 
-    if (storedAccessToken && storedRefreshToken && storedAdminData) {
-      try {
-        const adminData = JSON.parse(storedAdminData);
-        setAdmin(adminData);
-        setAccessToken(storedAccessToken);
-        setRefreshToken(storedRefreshToken);
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error('Error parsing stored admin data:', error);
-        logout();
+      if (storedAccessToken && storedRefreshToken && storedAdminData) {
+        try {
+          const adminData = JSON.parse(storedAdminData);
+          setAdmin(adminData);
+          setAccessToken(storedAccessToken);
+          setRefreshToken(storedRefreshToken);
+          setIsAuthenticated(true);
+        } catch (error) {
+          console.error('Error parsing stored admin data:', error);
+          logout();
+        }
+      } else {
+        // No tokens found, ensure user is logged out
+        setIsAuthenticated(false);
+        setAdmin(null);
+        setAccessToken(null);
+        setRefreshToken(null);
       }
-    }
+    };
+
+    checkAuthStatus();
+
+    // Listen for storage changes (when tokens are cleared by API service)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'admin_access_token' && !e.newValue) {
+        setIsAuthenticated(false);
+        setAdmin(null);
+        setAccessToken(null);
+        setRefreshToken(null);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const login = (adminData: Admin, accessToken: string, refreshToken: string) => {

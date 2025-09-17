@@ -42,6 +42,19 @@ class ApiService {
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle 401 Unauthorized - clear auth and redirect to login
+        if (response.status === 401) {
+          // Clear authentication data
+          localStorage.removeItem('admin_access_token');
+          localStorage.removeItem('admin_refresh_token');
+          localStorage.removeItem('admin_data');
+          
+          // Redirect to login page
+          window.location.href = '/login';
+          // Return a rejected promise to maintain type safety
+          throw new Error('Unauthorized - redirecting to login');
+        }
+        
         // Create a custom error with validation details
         const error = new Error(data.message || `HTTP error! status: ${response.status}`);
         (error as any).status = response.status;
