@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { 
   Users, Search, Filter, Eye, Edit, Trash2, UserCheck, UserX, 
   Mail, Phone, MapPin, Calendar, Shield, Activity, RefreshCw,
-  ChevronLeft, ChevronRight, MoreHorizontal, AlertCircle
+  ChevronLeft, ChevronRight, MoreHorizontal, AlertCircle, LogIn
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import MobileMenuButton from '../components/MobileMenuButton';
 import ViewItemModal from '../components/ViewItemModal';
@@ -38,6 +39,7 @@ interface PaginationInfo {
 }
 
 const UsersPage: React.FC = () => {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -294,12 +296,22 @@ const UsersPage: React.FC = () => {
               <div className="p-8 text-center">
                 <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-4" />
                 <p className="text-destructive">{error}</p>
-                <button 
-                  onClick={fetchUsers}
-                  className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                >
-                  Retry
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center mt-4">
+                  <button 
+                    onClick={fetchUsers}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    <span>Retry</span>
+                  </button>
+                  <button 
+                    onClick={() => navigate('/login')}
+                    className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span>Login</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <>

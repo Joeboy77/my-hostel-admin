@@ -11,6 +11,7 @@ import UsersPage from './pages/UsersPage';
 import NotificationsPage from './pages/NotificationsPage';
 import SettingsPage from './pages/SettingsPage';
 import BookingsPage from './pages/BookingsPage';
+import TransfersPage from './pages/TransfersPage';
 
 
 const App: React.FC = () => {
@@ -65,6 +66,14 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute>
               <BookingsPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/transfers" 
+          element={
+            <ProtectedRoute>
+              <TransfersPage />
             </ProtectedRoute>
           } 
         />

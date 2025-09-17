@@ -9,7 +9,8 @@ import {
   Menu, 
   X,
   LogOut,
-  Calendar
+  Calendar,
+  Send
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -35,6 +36,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     { icon: Building2, label: 'Properties', href: '/properties', active: location.pathname === '/properties' },
     { icon: Users, label: 'Users', href: '/users', active: location.pathname === '/users' },
     { icon: Calendar, label: 'Bookings', href: '/bookings', active: location.pathname === '/bookings' },
+    { icon: Send, label: 'Transfers', href: '/transfers', active: location.pathname === '/transfers' },
     { icon: Bell, label: 'Notifications', href: '/notifications', active: location.pathname === '/notifications' },
     { icon: Settings, label: 'Settings', href: '/settings', active: location.pathname === '/settings' },
   ];

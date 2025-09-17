@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Eye, Building2, Tag, Bed } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Building2, Tag, Bed, LogIn, RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import MobileMenuButton from '../components/MobileMenuButton';
 import AddItemModal from '../components/AddItemModal';
@@ -45,48 +46,70 @@ interface RoomType {
   createdAt: string;
 }
 
+interface RegionalSection {
+  id: string;
+  name: string;
+  propertyCount: number;
+  isActive: boolean;
+  displayOrder: number;
+  createdAt: string;
+}
+
 const PropertiesPage: React.FC = () => {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'properties' | 'categories' | 'room-types'>('properties');
+  const [activeTab, setActiveTab] = useState<'properties' | 'categories' | 'room-types' | 'regional-sections'>('properties');
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<'property' | 'category' | 'room-type'>('property');
+  const [modalType, setModalType] = useState<'property' | 'category' | 'room-type' | 'regional-section'>('property');
   const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [viewModalType, setViewModalType] = useState<'property' | 'category' | 'room-type'>('property');
+  const [viewModalType, setViewModalType] = useState<'property' | 'category' | 'room-type' | 'regional-section'>('property');
   const [viewItemId, setViewItemId] = useState<string>('');
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editModalType, setEditModalType] = useState<'property' | 'category' | 'room-type' | 'regional-section'>('property');
+  const [editItemId, setEditItemId] = useState<string>('');
+  const [editItemData, setEditItemData] = useState<any>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteItemId, setDeleteItemId] = useState<string>('');
+  const [deleteItemType, setDeleteItemType] = useState<'property' | 'category' | 'room-type' | 'regional-section'>('property');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<{
     properties: Property[];
     categories: Category[];
     roomTypes: RoomType[];
+    regionalSections: RegionalSection[];
   }>({
     properties: [],
     categories: [],
     roomTypes: [],
+    regionalSections: [],
   });
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch properties, categories, and room types
-      const [propertiesRes, categoriesRes, roomTypesRes] = await Promise.all([
+      // Fetch properties, categories, room types, and regional sections
+      const [propertiesRes, categoriesRes, roomTypesRes, regionalSectionsRes] = await Promise.all([
         apiService.getAllProperties(),
         apiService.getAllCategories(),
         apiService.getAllRoomTypes(),
+        apiService.getAllRegionalSections(),
       ]);
 
-      console.log('API Responses:', { propertiesRes, categoriesRes, roomTypesRes });
+      console.log('API Responses:', { propertiesRes, categoriesRes, roomTypesRes, regionalSectionsRes });
 
       // Handle the API response structure properly
       const properties = (propertiesRes.data as any)?.properties || propertiesRes.data || [];
       const categories = categoriesRes.data || [];
       const roomTypes = roomTypesRes.data || [];
+      const regionalSections = (regionalSectionsRes.data as RegionalSection[]) || [];
 
       setData({
         properties: Array.isArray(properties) ? properties : [],
         categories: Array.isArray(categories) ? categories : [],
         roomTypes: Array.isArray(roomTypes) ? roomTypes : [],
+        regionalSections: regionalSections,
       });
 
       console.log('Processed Data:', {
@@ -102,6 +125,7 @@ const PropertiesPage: React.FC = () => {
         properties: [],
         categories: [],
         roomTypes: [],
+        regionalSections: [],
       });
     } finally {
       setLoading(false);
@@ -112,7 +136,7 @@ const PropertiesPage: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleAddNew = (type: 'property' | 'category' | 'room-type') => {
+  const handleAddNew = (type: 'property' | 'category' | 'room-type' | 'regional-section') => {
     setModalType(type);
     setModalOpen(true);
   };
@@ -129,6 +153,9 @@ const PropertiesPage: React.FC = () => {
         case 'room-type':
           await apiService.createRoomType(formData);
           break;
+        case 'regional-section':
+          await apiService.createRegionalSection(formData);
+          break;
       }
       
       // Refresh data after successful creation
@@ -139,33 +166,93 @@ const PropertiesPage: React.FC = () => {
     }
   };
 
-  const handleView = (id: string, type: 'property' | 'category' | 'room-type') => {
+  const handleView = (id: string, type: 'property' | 'category' | 'room-type' | 'regional-section') => {
     setViewItemId(id);
     setViewModalType(type);
     setViewModalOpen(true);
   };
 
-  const handleDelete = async (id: string, type: 'property' | 'category' | 'room-type') => {
-    if (!window.confirm('Are you sure you want to delete this item?')) return;
+  const handleEdit = (id: string, type: 'property' | 'category' | 'room-type' | 'regional-section') => {
+    // Find the item data based on type and id
+    let itemData = null;
+    switch (type) {
+      case 'property':
+        itemData = data.properties.find(p => p.id === id);
+        break;
+      case 'category':
+        itemData = data.categories.find(c => c.id === id);
+        break;
+      case 'room-type':
+        itemData = data.roomTypes.find(r => r.id === id);
+        break;
+      case 'regional-section':
+        itemData = data.regionalSections.find(s => s.id === id);
+        break;
+    }
 
+    if (itemData) {
+      setEditItemId(id);
+      setEditModalType(type);
+      setEditItemData(itemData);
+      setEditModalOpen(true);
+    }
+  };
+
+  const handleDelete = (id: string, type: 'property' | 'category' | 'room-type' | 'regional-section') => {
+    setDeleteItemId(id);
+    setDeleteItemType(type);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
     try {
-      switch (type) {
+      switch (deleteItemType) {
         case 'property':
-          await apiService.deleteProperty(id);
+          await apiService.deleteProperty(deleteItemId);
           break;
         case 'category':
-          await apiService.deleteCategory(id);
+          await apiService.deleteCategory(deleteItemId);
           break;
         case 'room-type':
-          await apiService.deleteRoomType(id);
+          await apiService.deleteRoomType(deleteItemId);
+          break;
+        case 'regional-section':
+          await apiService.deleteRegionalSection(deleteItemId);
           break;
       }
       
       // Refresh data after successful deletion
       await fetchData();
+      setDeleteModalOpen(false);
     } catch (error) {
       console.error('Error deleting item:', error);
       alert('Failed to delete item. Please try again.');
+    }
+  };
+
+  const handleEditSubmit = async (data: any) => {
+    try {
+      switch (editModalType) {
+        case 'property':
+          await apiService.updateProperty(editItemId, data);
+          break;
+        case 'category':
+          await apiService.updateCategory(editItemId, data);
+          break;
+        case 'room-type':
+          await apiService.updateRoomType(editItemId, data);
+          break;
+        case 'regional-section':
+          await apiService.updateRegionalSection(editItemId, data);
+          break;
+      }
+      
+      // Refresh data after successful update
+      await fetchData();
+      setEditModalOpen(false);
+    } catch (error) {
+      console.error('Error updating item:', error);
+      throw error; // Re-throw to show error in modal
     }
   };
 
@@ -251,7 +338,11 @@ const PropertiesPage: React.FC = () => {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors">
+                      <button 
+                        onClick={() => handleEdit(property.id, 'property')}
+                        className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors"
+                        title="Edit property"
+                      >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button 
@@ -335,7 +426,11 @@ const PropertiesPage: React.FC = () => {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors">
+                      <button 
+                        onClick={() => handleEdit(category.id, 'category')}
+                        className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors"
+                        title="Edit category"
+                      >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button 
@@ -409,7 +504,11 @@ const PropertiesPage: React.FC = () => {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors">
+                      <button 
+                        onClick={() => handleEdit(roomType.id, 'room-type')}
+                        className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors"
+                        title="Edit room type"
+                      >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button 
@@ -429,10 +528,96 @@ const PropertiesPage: React.FC = () => {
     );
   };
 
+  const renderRegionalSectionsTable = () => {
+    if (!data.regionalSections || !Array.isArray(data.regionalSections)) {
+      return (
+        <div className="p-8 text-center text-muted-foreground">
+          <div className="flex flex-col items-center space-y-2">
+            <Building2 className="w-8 h-8 text-muted-foreground" />
+            <p className="font-medium">Loading regional sections...</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (data.regionalSections.length === 0) {
+      return (
+        <div className="p-8 text-center text-muted-foreground">
+          <div className="flex flex-col items-center space-y-2">
+            <Building2 className="w-8 h-8 text-muted-foreground" />
+            <p className="font-medium">No regional sections found</p>
+            <p className="text-sm">Regional sections will appear here once they are added</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left">
+          <thead className="text-xs uppercase bg-muted/50">
+            <tr>
+              <th className="px-6 py-3 text-foreground font-medium">Name</th>
+              <th className="px-6 py-3 text-foreground font-medium">Property Count</th>
+              <th className="px-6 py-3 text-foreground font-medium">Status</th>
+              <th className="px-6 py-3 text-foreground font-medium">Display Order</th>
+              <th className="px-6 py-3 text-foreground font-medium">Created</th>
+              <th className="px-6 py-3 text-foreground font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.regionalSections.map((section) => (
+              <tr key={section.id} className="bg-card border-b border-border hover:bg-muted/50 transition-colors">
+                <td className="px-6 py-4 font-medium text-foreground">{section.name}</td>
+                <td className="px-6 py-4 text-foreground">{section.propertyCount}</td>
+                <td className="px-6 py-4">
+                  <span className={`px-2 py-1 text-xs rounded-full ${
+                    section.isActive 
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                      : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                  }`}>
+                    {section.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </td>
+                <td className="px-6 py-4 text-foreground">{section.displayOrder}</td>
+                <td className="px-6 py-4 text-muted-foreground">{new Date(section.createdAt).toLocaleDateString()}</td>
+                <td className="px-6 py-4">
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={() => handleView(section.id, 'regional-section')}
+                      className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                      title="View details"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => handleEdit(section.id, 'regional-section')}
+                      className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors"
+                      title="Edit regional section"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(section.id, 'regional-section')}
+                      className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   const tabs = [
     { id: 'properties', label: 'Properties', icon: Building2, count: data.properties?.length || 0 },
     { id: 'categories', label: 'Categories', icon: Tag, count: data.categories?.length || 0 },
     { id: 'room-types', label: 'Room Types', icon: Bed, count: data.roomTypes?.length || 0 },
+    { id: 'regional-sections', label: 'Regional Sections', icon: Building2, count: data.regionalSections?.length || 0 },
   ];
 
   if (error) {
@@ -465,12 +650,22 @@ const PropertiesPage: React.FC = () => {
               </div>
               <h3 className="text-lg font-medium text-destructive mb-2">Error Loading Data</h3>
               <p className="text-destructive/80 mb-4">{error}</p>
-              <button
-                onClick={fetchData}
-                className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors"
-              >
-                Try Again
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  onClick={fetchData}
+                  className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors flex items-center justify-center space-x-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Try Again</span>
+                </button>
+                <button
+                  onClick={() => navigate('/login')}
+                  className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors flex items-center justify-center space-x-2"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Login</span>
+                </button>
+              </div>
             </div>
           </main>
         </div>
@@ -530,11 +725,11 @@ const PropertiesPage: React.FC = () => {
             {/* Add New Button - Far Right */}
             <div className="ml-6">
               <button
-                onClick={() => handleAddNew(activeTab === 'properties' ? 'property' : activeTab === 'categories' ? 'category' : 'room-type')}
+                onClick={() => handleAddNew(activeTab === 'properties' ? 'property' : activeTab === 'categories' ? 'category' : activeTab === 'room-types' ? 'room-type' : 'regional-section')}
                 className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors shadow-sm"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add New {activeTab === 'properties' ? 'Property' : activeTab === 'categories' ? 'Category' : 'Room Type'}
+                Add New {activeTab === 'properties' ? 'Property' : activeTab === 'categories' ? 'Category' : activeTab === 'room-types' ? 'Room Type' : 'Regional Section'}
               </button>
             </div>
           </div>
@@ -550,25 +745,36 @@ const PropertiesPage: React.FC = () => {
                   </svg>
                   Loading data...
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">Fetching properties, categories, and room types...</p>
+                <p className="mt-2 text-sm text-muted-foreground">Fetching properties, categories, room types, and regional sections...</p>
               </div>
             ) : (
               <div className="overflow-hidden">
                 {activeTab === 'properties' && renderPropertiesTable()}
                 {activeTab === 'categories' && renderCategoriesTable()}
                 {activeTab === 'room-types' && renderRoomTypesTable()}
+                {activeTab === 'regional-sections' && renderRegionalSectionsTable()}
               </div>
             )}
           </div>
         </main>
       </div>
 
-      {/* Modal */}
+      {/* Add Modal */}
       <AddItemModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         type={modalType}
         onSubmit={handleModalSubmit}
+      />
+      
+      {/* Edit Modal */}
+      <AddItemModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        type={editModalType}
+        onSubmit={handleEditSubmit}
+        editData={editItemData}
+        isEdit={true}
       />
       
       {/* View Modal */}
@@ -578,6 +784,40 @@ const PropertiesPage: React.FC = () => {
         type={viewModalType}
         itemId={viewItemId}
       />
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg p-6 max-w-md w-full mx-4 border border-border">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="flex-shrink-0 w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Delete {deleteItemType.replace('-', ' ')}</h3>
+                <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
+              </div>
+            </div>
+            <p className="text-foreground mb-6">
+              Are you sure you want to delete this {deleteItemType.replace('-', ' ')}? This action will permanently remove it from the system.
+            </p>
+            <div className="flex space-x-3 justify-end">
+              <button
+                onClick={() => setDeleteModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-muted-foreground bg-muted rounded-lg hover:bg-muted/80 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

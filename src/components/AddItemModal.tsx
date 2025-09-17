@@ -6,8 +6,10 @@ import apiService from '../services/api';
 interface AddItemModalProps {
   isOpen: boolean;
   onClose: () => void;
-  type: 'property' | 'category' | 'room-type';
+  type: 'property' | 'category' | 'room-type' | 'regional-section';
   onSubmit: (data: any) => Promise<void>;
+  editData?: any;
+  isEdit?: boolean;
 }
 
 interface FormData {
@@ -21,9 +23,8 @@ interface FormData {
   longitude?: string;
   price?: string;
   currency?: string;
-  propertyType?: string;
   categoryId?: string;
-  isFeatured?: boolean;
+  regionalSectionId?: string; // Added for regional section assignment
   displayOrder?: string;
   amenities?: string[];
   imageUrl?: string;
@@ -32,6 +33,8 @@ interface FormData {
   genderType?: string;
   propertyId?: string; // Added for room types
   additionalImageUrls?: string[]; // Added for room types
+  icon?: string; // Added for category icons
+  color?: string; // Added for category colors
 }
 
 interface Category {
@@ -45,7 +48,7 @@ interface Category {
   updatedAt: string;
 }
 
-const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSubmit }) => {
+const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSubmit, editData, isEdit = false }) => {
   const { theme } = useTheme();
   
   const [formData, setFormData] = useState<FormData>({});
@@ -53,6 +56,8 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [categories, setCategories] = useState<Category[]>([]);
   const [fetchingCategories, setFetchingCategories] = useState(false);
+  const [regionalSections, setRegionalSections] = useState<any[]>([]);
+  const [fetchingRegionalSections, setFetchingRegionalSections] = useState(false);
   const [properties, setProperties] = useState<any[]>([]);
   const [fetchingProperties, setFetchingProperties] = useState(false);
   
@@ -64,19 +69,24 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
 
   const modalConfig = {
     property: {
-      title: 'Add New Property',
+      title: isEdit ? 'Edit Property' : 'Add New Property',
       icon: Building2,
-      description: 'Create a new property listing with all necessary details',
+      description: isEdit ? 'Update property details' : 'Create a new property listing with all necessary details',
     },
     category: {
-      title: 'Add New Category',
+      title: isEdit ? 'Edit Category' : 'Add New Category',
       icon: Tag,
-      description: 'Create a new property category',
+      description: isEdit ? 'Update category details' : 'Create a new property category',
     },
     'room-type': {
-      title: 'Add New Room Type',
+      title: isEdit ? 'Edit Room Type' : 'Add New Room Type',
       icon: Bed,
-      description: 'Create a new room type with pricing and capacity',
+      description: isEdit ? 'Update room type details' : 'Create a new room type with pricing and capacity',
+    },
+    'regional-section': {
+      title: isEdit ? 'Edit Regional Section' : 'Add New Regional Section',
+      icon: Tag,
+      description: isEdit ? 'Update regional section details' : 'Create a new regional section (e.g., Top Picks in Walewale)',
     },
   };
 
@@ -90,12 +100,58 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
     }
   }, [isOpen, type]);
 
+  // Fetch regional sections when modal opens for property creation
+  useEffect(() => {
+    if (isOpen && type === 'property' && regionalSections.length === 0) {
+      fetchRegionalSections();
+    }
+  }, [isOpen, type]);
+
   // Fetch properties when modal opens for room type creation
   useEffect(() => {
     if (isOpen && type === 'room-type') {
       fetchProperties();
     }
   }, [isOpen, type]);
+
+  // Initialize form data when editing
+  useEffect(() => {
+    if (isOpen && isEdit && editData) {
+      setFormData({
+        name: editData.name || '',
+        description: editData.description || '',
+        mainImageUrl: editData.mainImageUrl || editData.imageUrl || '',
+        location: editData.location || '',
+        city: editData.city || '',
+        region: editData.region || '',
+        latitude: editData.latitude?.toString() || '',
+        longitude: editData.longitude?.toString() || '',
+        price: editData.price?.toString() || '',
+        currency: editData.currency || 'GHS',
+        categoryId: editData.categoryId || editData.category?.id || '',
+        regionalSectionId: editData.regionalSectionId || editData.regionalSection?.id || '',
+        displayOrder: editData.displayOrder?.toString() || '',
+        amenities: editData.amenities || [],
+        imageUrl: editData.imageUrl || '',
+        type: editData.type || '',
+        capacity: editData.capacity?.toString() || '',
+        genderType: editData.genderType || '',
+        propertyId: editData.propertyId || editData.property?.id || '',
+        additionalImageUrls: editData.additionalImageUrls || [],
+        icon: editData.icon || '',
+        color: editData.color || '',
+      });
+      
+      // Set amenities and image URLs lists
+      setAmenitiesList(editData.amenities || []);
+      setImageUrlsList(editData.additionalImageUrls || []);
+    } else if (isOpen && !isEdit) {
+      // Reset form data for new items
+      setFormData({});
+      setAmenitiesList([]);
+      setImageUrlsList([]);
+    }
+  }, [isOpen, isEdit, editData]);
 
   const fetchCategories = async () => {
     setFetchingCategories(true);
@@ -108,6 +164,20 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
       console.error('Error fetching categories:', error);
     } finally {
       setFetchingCategories(false);
+    }
+  };
+
+  const fetchRegionalSections = async () => {
+    setFetchingRegionalSections(true);
+    try {
+      const response = await apiService.getAllRegionalSections();
+      if (response.success && response.data && Array.isArray(response.data)) {
+        setRegionalSections(response.data.filter((section: any) => section.isActive));
+      }
+    } catch (error) {
+      console.error('Error fetching regional sections:', error);
+    } finally {
+      setFetchingRegionalSections(false);
     }
   };
 
@@ -150,7 +220,6 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
       if (!formData.city?.trim()) newErrors.city = 'City is required';
       if (!formData.region?.trim()) newErrors.region = 'Region is required';
       if (!formData.price?.trim()) newErrors.price = 'Price is required';
-      if (!formData.propertyType) newErrors.propertyType = 'Property type is required';
       if (!formData.categoryId) newErrors.categoryId = 'Category is required';
       
       // Validate price is a positive number
@@ -167,12 +236,8 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
       }
     } else if (type === 'category') {
       if (!formData.name?.trim()) newErrors.name = 'Name is required';
-      if (!formData.description?.trim()) newErrors.description = 'Description is required';
-      if (formData.description && formData.description.trim().length < 10) {
-        newErrors.description = 'Description must be at least 10 characters long';
-      }
-      if (!formData.imageUrl?.trim()) newErrors.imageUrl = 'Image URL is required';
-      // Type is optional, no validation needed
+      if (!formData.icon?.trim()) newErrors.icon = 'Icon is required';
+      if (!formData.color?.trim()) newErrors.color = 'Color is required';
     } else if (type === 'room-type') {
       if (!formData.name?.trim()) newErrors.name = 'Name is required';
       if (!formData.description?.trim()) newErrors.description = 'Description is required';
@@ -193,6 +258,8 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
       if (formData.price && parseFloat(formData.price) <= 0) {
         newErrors.price = 'Price must be greater than 0';
       }
+    } else if (type === 'regional-section') {
+      if (!formData.name?.trim()) newErrors.name = 'Section name is required';
     }
 
     setErrors(newErrors);
@@ -429,60 +496,58 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
         </div>
       </div>
 
-      {/* Property Type and Category */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            Property Type *
-          </label>
-          <select
-            value={formData.propertyType || ''}
-            onChange={(e) => handleInputChange('propertyType', e.target.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
-              errors.propertyType 
-                ? 'border-destructive bg-destructive/10' 
-                : 'border-border bg-background text-foreground'
-            }`}
-          >
-            <option value="">Select property type</option>
-            <option value="hostel">Hostel</option>
-            <option value="hotel">Hotel</option>
-            <option value="homestay">Homestay</option>
-            <option value="apartment">Apartment</option>
-            <option value="guesthouse">Guest House</option>
-          </select>
-          {errors.propertyType && (
-            <p className="mt-1 text-sm text-destructive">{errors.propertyType}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            Category *
-          </label>
-          <select
-            value={formData.categoryId || ''}
-            onChange={(e) => handleInputChange('categoryId', e.target.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
-              errors.categoryId 
-                ? 'border-destructive bg-destructive/10' 
-                : 'border-border bg-background text-foreground'
-            }`}
-            disabled={fetchingCategories}
-          >
-            <option value="">
-              {fetchingCategories ? 'Loading categories...' : 'Select a category'}
+      {/* Category */}
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-2">
+          Category *
+        </label>
+        <select
+          value={formData.categoryId || ''}
+          onChange={(e) => handleInputChange('categoryId', e.target.value)}
+          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
+            errors.categoryId 
+              ? 'border-destructive bg-destructive/10' 
+              : 'border-border bg-background text-foreground'
+          }`}
+          disabled={fetchingCategories}
+        >
+          <option value="">
+            {fetchingCategories ? 'Loading categories...' : 'Select a category'}
+          </option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
             </option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-          {errors.categoryId && (
-            <p className="mt-1 text-sm text-destructive">{errors.categoryId}</p>
-          )}
-        </div>
+          ))}
+        </select>
+        {errors.categoryId && (
+          <p className="mt-1 text-sm text-destructive">{errors.categoryId}</p>
+        )}
+        <p className="mt-1 text-sm text-muted-foreground">
+          Select the category this property belongs to (e.g., Hotels, Hostels, Guest Houses)
+        </p>
+      </div>
+
+      {/* Regional Section */}
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-2">
+          Regional Section (Optional)
+        </label>
+        <select
+          value={formData.regionalSectionId || ''}
+          onChange={(e) => handleInputChange('regionalSectionId', e.target.value)}
+          className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors bg-background text-foreground"
+        >
+          <option value="">No regional section</option>
+          {regionalSections.map((section) => (
+            <option key={section.id} value={section.id}>
+              {section.name}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Assign this property to a regional section (optional)
+        </p>
       </div>
 
       {/* Currency and Coordinates */}
@@ -551,33 +616,21 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
       </div>
 
       {/* Additional Options */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            Display Order
-          </label>
-          <input
-            type="number"
-            value={formData.displayOrder || '0'}
-            onChange={(e) => handleInputChange('displayOrder', e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors bg-background text-foreground"
-            placeholder="0"
-            min="0"
-          />
-        </div>
-
-        <div className="flex items-center space-x-3">
-          <input
-            type="checkbox"
-            id="isFeatured"
-            checked={formData.isFeatured || false}
-            onChange={(e) => handleInputChange('isFeatured', e.target.checked)}
-            className="w-4 h-4 text-primary border-border rounded focus:ring-primary focus:ring-2"
-          />
-          <label htmlFor="isFeatured" className="text-sm font-medium text-foreground">
-            Featured Property
-          </label>
-        </div>
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-2">
+          Display Order
+        </label>
+        <input
+          type="number"
+          value={formData.displayOrder || '0'}
+          onChange={(e) => handleInputChange('displayOrder', e.target.value)}
+          className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors bg-background text-foreground"
+          placeholder="0"
+          min="0"
+        />
+        <p className="mt-1 text-sm text-muted-foreground">
+          Set the display order for this property (lower numbers appear first)
+        </p>
       </div>
     </div>
   );
@@ -597,7 +650,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
               ? 'border-destructive bg-destructive/10' 
               : 'border-border bg-background text-foreground'
           }`}
-          placeholder="Enter category name"
+          placeholder="Enter category name (e.g., Hotel, Guest House)"
         />
         {errors.name && (
           <p className="mt-1 text-sm text-destructive">{errors.name}</p>
@@ -606,63 +659,146 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
 
       <div>
         <label className="block text-sm font-medium text-foreground mb-2">
-          Image URL *
-        </label>
-        <input
-          type="url"
-          value={formData.imageUrl || ''}
-          onChange={(e) => handleInputChange('imageUrl', e.target.value)}
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
-            errors.imageUrl 
-              ? 'border-destructive bg-destructive/10' 
-              : 'border-border bg-background text-foreground'
-          }`}
-          placeholder="https://example.com/image.jpg"
-        />
-        {errors.imageUrl && (
-          <p className="mt-1 text-sm text-destructive">{errors.imageUrl}</p>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-foreground mb-2">
-          Description *
-        </label>
-        <textarea
-          value={formData.description || ''}
-          onChange={(e) => handleInputChange('description', e.target.value)}
-          rows={4}
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors resize-none ${
-            errors.description 
-              ? 'border-destructive bg-destructive/10' 
-              : 'border-border bg-background text-foreground'
-          }`}
-          placeholder="Enter category description"
-        />
-        {errors.description && (
-          <p className="mt-1 text-sm text-destructive">{errors.description}</p>
-        )}
-        <p className="mt-1 text-sm text-muted-foreground">
-          Provide a clear description of this category (at least 10 characters)
-        </p>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-foreground mb-2">
-          Type
+          Icon *
         </label>
         <select
-          value={formData.type || ''}
-          onChange={(e) => handleInputChange('type', e.target.value)}
-          className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors bg-background text-foreground"
+          value={formData.icon || ''}
+          onChange={(e) => handleInputChange('icon', e.target.value)}
+          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
+            errors.icon 
+              ? 'border-destructive bg-destructive/10' 
+              : 'border-border bg-background text-foreground'
+          }`}
         >
-          <option value="">Select category type (optional)</option>
-          <option value="hostel">Hostel</option>
-          <option value="hotel">Hotel</option>
-          <option value="homestay">Homestay</option>
-          <option value="apartment">Apartment</option>
-          <option value="guesthouse">Guest House</option>
+          <option value="">Select icon *</option>
+          {/* Accommodation Types */}
+          <option value="🏨">🏨 Hotel</option>
+          <option value="🏠">🏠 Guest House</option>
+          <option value="🏢">🏢 Apartment</option>
+          <option value="🏘️">🏘️ Hostel</option>
+          <option value="🏡">🏡 Villa</option>
+          <option value="🏰">🏰 Resort</option>
+          <option value="🏭">🏭 Lodge</option>
+          <option value="🏪">🏪 Inn</option>
+          
+          {/* Room Types */}
+          <option value="🛏️">🛏️ Single Bed</option>
+          <option value="🛌">🛌 Double Bed</option>
+          <option value="🛋️">🛋️ Shared Room</option>
+          <option value="🚪">🚪 Private Room</option>
+          <option value="🏠">🏠 Dormitory</option>
+          <option value="🛏️">🛏️ Bunk Bed</option>
+          
+          {/* Amenities & Features */}
+          <option value="📶">📶 WiFi</option>
+          <option value="🚿">🚿 Private Bathroom</option>
+          <option value="🛁">🛁 Shared Bathroom</option>
+          <option value="🍳">🍳 Kitchen</option>
+          <option value="🧺">🧺 Laundry</option>
+          <option value="🏊">🏊 Pool</option>
+          <option value="🏋️">🏋️ Gym</option>
+          <option value="🚗">🚗 Parking</option>
+          <option value="🛡️">🛡️ Security</option>
+          <option value="🌡️">🌡️ Air Conditioning</option>
+          <option value="❄️">❄️ Fan</option>
+          <option value="📺">📺 TV</option>
+          <option value="🔌">🔌 Power Outlets</option>
+          
+          {/* Location & Travel */}
+          <option value="📍">📍 Location</option>
+          <option value="🚌">🚌 Bus Stop</option>
+          <option value="🚇">🚇 Metro</option>
+          <option value="✈️">✈️ Airport</option>
+          <option value="🏫">🏫 University</option>
+          <option value="🏥">🏥 Hospital</option>
+          <option value="🛒">🛒 Shopping</option>
+          <option value="🍽️">🍽️ Restaurant</option>
+          
+          {/* Quality & Rating */}
+          <option value="⭐">⭐ Star Rating</option>
+          <option value="🏆">🏆 Premium</option>
+          <option value="💎">💎 Luxury</option>
+          <option value="✅">✅ Verified</option>
+          <option value="🔥">🔥 Popular</option>
+          <option value="💯">💯 Top Rated</option>
+          
+          {/* General */}
+          <option value="❤️">❤️ Favorite</option>
+          <option value="🌙">🌙 Night Stay</option>
+          <option value="☀️">☀️ Day Stay</option>
+          <option value="🎯">🎯 Target</option>
+          <option value="🎪">🎪 Entertainment</option>
         </select>
+        {errors.icon && (
+          <p className="mt-1 text-sm text-destructive">{errors.icon}</p>
+        )}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-2">
+          Color *
+        </label>
+        <select
+          value={formData.color || ''}
+          onChange={(e) => handleInputChange('color', e.target.value)}
+          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
+            errors.color 
+              ? 'border-destructive bg-destructive/10' 
+              : 'border-border bg-background text-foreground'
+          }`}
+        >
+          <option value="">Select color *</option>
+          {/* Primary Colors */}
+          <option value="#e74c3c">🔴 Classic Red</option>
+          <option value="#3498db">🔵 Ocean Blue</option>
+          <option value="#2ecc71">🟢 Forest Green</option>
+          <option value="#f39c12">🟠 Sunset Orange</option>
+          <option value="#9b59b6">🟣 Royal Purple</option>
+          
+          {/* Hospitality & Travel Colors */}
+          <option value="#1abc9c">🔵 Turquoise</option>
+          <option value="#e67e22">🟠 Carrot Orange</option>
+          <option value="#34495e">🔵 Midnight Blue</option>
+          <option value="#8e44ad">🟣 Deep Purple</option>
+          <option value="#16a085">🟢 Emerald</option>
+          
+          {/* Warm & Inviting Colors */}
+          <option value="#d35400">🟠 Burnt Orange</option>
+          <option value="#c0392b">🔴 Dark Red</option>
+          <option value="#8e44ad">🟣 Plum</option>
+          <option value="#2980b9">🔵 Steel Blue</option>
+          <option value="#27ae60">🟢 Success Green</option>
+          
+          {/* Modern & Professional */}
+          <option value="#2c3e50">🔵 Dark Slate</option>
+          <option value="#7f8c8d">⚫ Steel Gray</option>
+          <option value="#95a5a6">⚫ Light Gray</option>
+          <option value="#bdc3c7">⚫ Silver</option>
+          <option value="#ecf0f1">⚪ Cloud White</option>
+          
+          {/* Vibrant & Energetic */}
+          <option value="#e91e63">🔴 Pink</option>
+          <option value="#ff5722">🟠 Deep Orange</option>
+          <option value="#4caf50">🟢 Material Green</option>
+          <option value="#2196f3">🔵 Material Blue</option>
+          <option value="#9c27b0">🟣 Material Purple</option>
+          
+          {/* Luxury & Premium */}
+          <option value="#ffd700">🟡 Gold</option>
+          <option value="#c0c0c0">⚪ Silver</option>
+          <option value="#cd7f32">🟤 Bronze</option>
+          <option value="#800080">🟣 Deep Purple</option>
+          <option value="#000080">🔵 Navy Blue</option>
+          
+          {/* Ghana-inspired Colors */}
+          <option value="#ff0000">🔴 Ghana Red</option>
+          <option value="#ffd700">🟡 Ghana Gold</option>
+          <option value="#006600">🟢 Ghana Green</option>
+          <option value="#000000">⚫ Ghana Black</option>
+        </select>
+        {errors.color && (
+          <p className="mt-1 text-sm text-destructive">{errors.color}</p>
+        )}
       </div>
     </div>
   );
@@ -753,26 +889,106 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-foreground mb-2">
-          Base Price *
-        </label>
-        <input
-          type="number"
-          value={formData.price || ''}
-          onChange={(e) => handleInputChange('price', e.target.value)}
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
-            errors.price 
-              ? 'border-destructive bg-destructive/10' 
-              : 'border-border bg-background text-foreground'
-          }`}
-          placeholder="Enter base price"
-          min="0"
-          step="0.01"
-        />
-        {errors.price && (
-          <p className="mt-1 text-sm text-destructive">{errors.price}</p>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-2">
+            Total Rooms *
+          </label>
+          <input
+            type="number"
+            value={formData.totalRooms || ''}
+            onChange={(e) => handleInputChange('totalRooms', e.target.value)}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
+              errors.totalRooms 
+                ? 'border-destructive bg-destructive/10' 
+                : 'border-border bg-background text-foreground'
+            }`}
+            placeholder="Enter total number of rooms"
+            min="1"
+          />
+          {errors.totalRooms && (
+            <p className="mt-1 text-sm text-destructive">{errors.totalRooms}</p>
+          )}
+          <p className="mt-1 text-sm text-muted-foreground">
+            Total number of rooms of this type in the property
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-2">
+            Available Rooms *
+          </label>
+          <input
+            type="number"
+            value={formData.availableRooms || ''}
+            onChange={(e) => handleInputChange('availableRooms', e.target.value)}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
+              errors.availableRooms 
+                ? 'border-destructive bg-destructive/10' 
+                : 'border-border bg-background text-foreground'
+            }`}
+            placeholder="Enter available rooms"
+            min="0"
+          />
+          {errors.availableRooms && (
+            <p className="mt-1 text-sm text-destructive">{errors.availableRooms}</p>
+          )}
+          <p className="mt-1 text-sm text-muted-foreground">
+            Number of rooms currently available for booking
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-2">
+            Base Price *
+          </label>
+          <input
+            type="number"
+            value={formData.price || ''}
+            onChange={(e) => handleInputChange('price', e.target.value)}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
+              errors.price 
+                ? 'border-destructive bg-destructive/10' 
+                : 'border-border bg-background text-foreground'
+            }`}
+            placeholder="Enter base price"
+            min="0"
+            step="0.01"
+          />
+          {errors.price && (
+            <p className="mt-1 text-sm text-destructive">{errors.price}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-2">
+            Billing Period *
+          </label>
+          <select
+            value={formData.billingPeriod || 'per_night'}
+            onChange={(e) => handleInputChange('billingPeriod', e.target.value)}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
+              errors.billingPeriod 
+                ? 'border-destructive bg-destructive/10' 
+                : 'border-border bg-background text-foreground'
+            }`}
+          >
+            <option value="per_night">Per Night</option>
+            <option value="per_day">Per Day</option>
+            <option value="per_week">Per Week</option>
+            <option value="per_month">Per Month</option>
+            <option value="per_semester">Per Semester</option>
+            <option value="per_year">Per Year</option>
+          </select>
+          {errors.billingPeriod && (
+            <p className="mt-1 text-sm text-destructive">{errors.billingPeriod}</p>
+          )}
+          <p className="mt-1 text-sm text-muted-foreground">
+            How the price is billed (e.g., ₵200 per night, ₵5,000 per semester)
+          </p>
+        </div>
       </div>
 
       <div>
@@ -971,6 +1187,47 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
     </div>
   );
 
+  const renderRegionalSectionForm = () => (
+    <div className="space-y-6">
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-2">
+          Section Name *
+        </label>
+        <input
+          type="text"
+          value={formData.name || ''}
+          onChange={(e) => handleInputChange('name', e.target.value)}
+          className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors bg-background text-foreground"
+          placeholder="e.g., Popular in Accra, Top Picks in Kumasi"
+        />
+        {errors.name && (
+          <p className="mt-1 text-sm text-destructive">{errors.name}</p>
+        )}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-2">
+          Display Order (Optional)
+        </label>
+        <input
+          type="number"
+          value={formData.displayOrder || ''}
+          onChange={(e) => handleInputChange('displayOrder', e.target.value)}
+          className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors bg-background text-foreground"
+          placeholder="e.g., 1, 2, 3"
+          min="0"
+        />
+        <p className="mt-1 text-sm text-muted-foreground">
+          Lower numbers appear first in the list (optional)
+        </p>
+      </div>
+
+
+
+
+    </div>
+  );
+
   const renderForm = () => {
     switch (type) {
       case 'property':
@@ -979,6 +1236,8 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
         return renderCategoryForm();
       case 'room-type':
         return renderRoomTypeForm();
+      case 'regional-section':
+        return renderRegionalSectionForm();
       default:
         return null;
     }
@@ -1054,7 +1313,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
                 ) : (
                   <>
                     <Plus className="w-4 h-4" />
-                    <span>Create {type === 'property' ? 'Property' : type === 'category' ? 'Category' : 'Room Type'}</span>
+                    <span>{isEdit ? 'Update' : 'Create'} {type === 'property' ? 'Property' : type === 'category' ? 'Category' : type === 'room-type' ? 'Room Type' : 'Regional Section'}</span>
                   </>
                 )}
               </button>

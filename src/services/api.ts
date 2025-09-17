@@ -57,6 +57,36 @@ class ApiService {
     }
   }
 
+  // Generic HTTP methods
+  async get<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'GET' });
+  }
+
+  async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async put<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async patch<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'DELETE' });
+  }
+
   // Admin Authentication
   async adminLogin(email: string, password: string) {
     return this.request('/admin/login', {
@@ -123,6 +153,36 @@ class ApiService {
     return this.request(`/admin/categories/${id}`, { method: 'DELETE' });
   }
 
+  // Regional Section Management Methods
+  async getAllRegionalSections() {
+    return this.request('/admin/regional-sections', { method: 'GET' });
+  }
+
+  async createRegionalSection(data: { name: string; displayOrder?: number }) {
+    return this.request('/admin/regional-sections', { 
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async updateRegionalSection(id: string, data: { name?: string; displayOrder?: number; isActive?: boolean }) {
+    return this.request(`/admin/regional-sections/${id}`, { 
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async deleteRegionalSection(id: string) {
+    return this.request(`/admin/regional-sections/${id}`, { method: 'DELETE' });
+  }
+
+  async assignPropertyToRegionalSection(propertyId: string, regionalSectionId: string) {
+    return this.request('/admin/assign-property-to-regional-section', { 
+      method: 'POST',
+      body: JSON.stringify({ propertyId, regionalSectionId })
+    });
+  }
+
   async createRoomType(data: any) {
     return this.request('/admin/room-types', { 
       method: 'POST',
@@ -152,6 +212,10 @@ class ApiService {
 
   async getRoomTypeDetails(id: string) {
     return this.request(`/admin/room-types/${id}`, { method: 'GET' });
+  }
+
+  async getRegionalSectionDetails(id: string) {
+    return this.request(`/admin/regional-sections/${id}`, { method: 'GET' });
   }
 
   // User Management Methods

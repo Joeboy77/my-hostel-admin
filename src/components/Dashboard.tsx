@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { 
   Users, Building2, Heart, Bell, TrendingUp, Activity,
   Database, Clock, CheckCircle, AlertCircle, RefreshCw,
-  BarChart3, LineChart, PieChart
+  BarChart3, LineChart, PieChart, LogIn
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import apiService from '../services/api';
 import Sidebar from './Sidebar';
@@ -50,6 +51,7 @@ interface DashboardStats {
 
 const Dashboard: React.FC = () => {
   const { isDayTime } = useTheme();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -127,13 +129,22 @@ const Dashboard: React.FC = () => {
           <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-foreground mb-2">Error Loading Dashboard</h2>
           <p className="text-muted-foreground mb-4">{error}</p>
-          <button 
-            onClick={fetchDashboardStats}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center mx-auto space-x-2"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>Retry</span>
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button 
+              onClick={fetchDashboardStats}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center space-x-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Retry</span>
+            </button>
+            <button 
+              onClick={() => navigate('/login')}
+              className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors flex items-center space-x-2"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>Login</span>
+            </button>
+          </div>
         </div>
       </div>
     );

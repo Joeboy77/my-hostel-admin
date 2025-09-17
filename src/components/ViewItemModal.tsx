@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { X, Building2, Tag, Bed, MapPin, Star, Calendar, Users, Home, Mail, Phone, Shield } from 'lucide-react';
 import apiService from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface ViewItemModalProps {
   isOpen: boolean;
   onClose: () => void;
-  type: 'property' | 'category' | 'room-type' | 'user';
+  type: 'property' | 'category' | 'room-type' | 'regional-section' | 'user';
   itemId: string;
 }
 
 const ViewItemModal: React.FC<ViewItemModalProps> = ({ isOpen, onClose, type, itemId }) => {
+  const { theme } = useTheme();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +36,9 @@ const ViewItemModal: React.FC<ViewItemModalProps> = ({ isOpen, onClose, type, it
           break;
         case 'room-type':
           response = await apiService.getRoomTypeDetails(itemId);
+          break;
+        case 'regional-section':
+          response = await apiService.getRegionalSectionDetails(itemId);
           break;
         case 'user':
           response = await apiService.getUserDetails(itemId);
@@ -69,18 +74,18 @@ const ViewItemModal: React.FC<ViewItemModalProps> = ({ isOpen, onClose, type, it
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-          <div className="absolute inset-0 bg-gray-500 opacity-75 dark:bg-gray-900 dark:opacity-75"></div>
+          <div className="absolute inset-0 bg-background/80 opacity-75"></div>
         </div>
 
-        <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+        <div className="inline-block align-bottom bg-card border border-border rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-              View {type === 'property' ? 'Property' : type === 'category' ? 'Category' : 'Room Type'} Details
+          <div className="flex items-center justify-between p-6 border-b border-border">
+            <h3 className="text-lg font-medium text-foreground">
+              View {type === 'property' ? 'Property' : type === 'category' ? 'Category' : type === 'room-type' ? 'Room Type' : type === 'regional-section' ? 'Regional Section' : 'User'} Details
             </h3>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="w-6 h-6" />
             </button>
@@ -90,13 +95,13 @@ const ViewItemModal: React.FC<ViewItemModalProps> = ({ isOpen, onClose, type, it
           <div className="p-6 max-h-96 overflow-y-auto">
             {loading && (
               <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             )}
 
             {error && (
               <div className="text-center py-8">
-                <p className="text-red-600 dark:text-red-400">{error}</p>
+                <p className="text-destructive">{error}</p>
               </div>
             )}
 
