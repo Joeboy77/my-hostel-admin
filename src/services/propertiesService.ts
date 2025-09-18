@@ -70,16 +70,11 @@ export interface CreateRoomTypeData {
 
 export const propertiesService = {
   // Properties
-  async getAllProperties(page = 1, limit = 20, search = '') {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      ...(search && { search })
-    });
+  async getAllProperties() {
     return apiService.getAllProperties();
   },
 
-  async getPropertyById(id: string) {
+  async getPropertyById(_id: string) {
     // We'll need to add this method to ApiService
     return apiService.getAllProperties(); // Temporary fix
   },
@@ -88,15 +83,15 @@ export const propertiesService = {
     return apiService.createProperty(data);
   },
 
-  async updateProperty(id: string, data: Partial<CreatePropertyData>) {
+  async updateProperty(_id: string, _data: Partial<CreatePropertyData>) {
     return apiService.updateProperty(id, data);
   },
 
-  async deleteProperty(id: string) {
+  async deleteProperty(_id: string) {
     return apiService.deleteProperty(id);
   },
 
-  async updatePropertyStatus(id: string, status: string, isActive?: boolean) {
+  async updatePropertyStatus(_id: string, _status: string, _isActive?: boolean) {
     // We'll need to add this method to ApiService
     return apiService.getAllProperties(); // Temporary fix
   },
@@ -110,12 +105,12 @@ export const propertiesService = {
     return apiService.createCategory(data);
   },
 
-  async updateCategory(id: string, data: Partial<CreateCategoryData>) {
+  async updateCategory(_id: string, _data: Partial<CreateCategoryData>) {
     // We'll need to add this method to ApiService
     return apiService.getAllCategories(); // Temporary fix
   },
 
-  async deleteCategory(id: string) {
+  async deleteCategory(_id: string) {
     // We'll need to add this method to ApiService
     return apiService.getAllCategories(); // Temporary fix
   },
@@ -129,12 +124,12 @@ export const propertiesService = {
     return apiService.createRoomType(data);
   },
 
-  async updateRoomType(id: string, data: Partial<CreateRoomTypeData>) {
+  async updateRoomType(_id: string, _data: Partial<CreateRoomTypeData>) {
     // We'll need to add this method to ApiService
     return apiService.getAllRoomTypes(); // Temporary fix
   },
 
-  async deleteRoomType(id: string) {
+  async deleteRoomType(_id: string) {
     // We'll need to add this method to ApiService
     return apiService.getAllRoomTypes(); // Temporary fix
   }

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, Search, Filter, Eye, Edit, Trash2, UserCheck, UserX, 
-  Mail, Phone, MapPin, Calendar, Shield, Activity, RefreshCw,
-  ChevronLeft, ChevronRight, MoreHorizontal, AlertCircle, LogIn
+  Users, Search, Eye, Trash2, RefreshCw,
+  ChevronLeft, ChevronRight, AlertCircle, LogIn,
+  UserCheck, Activity, Mail, Phone, MapPin, UserX
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
@@ -58,7 +58,6 @@ const UsersPage: React.FC = () => {
   // Modal states
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -106,8 +105,6 @@ const UsersPage: React.FC = () => {
     try {
       const response = await apiService.getUserDetails(userId);
       if (response.success && response.data) {
-        const data = response.data as any;
-        setSelectedUser(data.user);
         setSelectedUserId(userId);
         setViewModalOpen(true);
       }

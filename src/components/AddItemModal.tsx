@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Building2, Tag, Bed, AlertCircle, RefreshCw } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
+// import { useTheme } from '../contexts/ThemeContext';
 import apiService from '../services/api';
 
 interface AddItemModalProps {
@@ -35,6 +35,10 @@ interface FormData {
   additionalImageUrls?: string[]; // Added for room types
   icon?: string; // Added for category icons
   color?: string; // Added for category colors
+  // Room availability and billing period
+  totalRooms?: string;
+  availableRooms?: string;
+  billingPeriod?: string;
 }
 
 interface Category {
@@ -49,7 +53,7 @@ interface Category {
 }
 
 const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSubmit, editData, isEdit = false }) => {
-  const { theme } = useTheme();
+  // const { theme } = useTheme();
   
   const [formData, setFormData] = useState<FormData>({});
   const [loading, setLoading] = useState(false);
@@ -57,7 +61,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
   const [categories, setCategories] = useState<Category[]>([]);
   const [fetchingCategories, setFetchingCategories] = useState(false);
   const [regionalSections, setRegionalSections] = useState<any[]>([]);
-  const [fetchingRegionalSections, setFetchingRegionalSections] = useState(false);
+  const [, setFetchingRegionalSections] = useState(false);
   const [properties, setProperties] = useState<any[]>([]);
   const [fetchingProperties, setFetchingProperties] = useState(false);
   

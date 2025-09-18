@@ -6,7 +6,6 @@ import {
   Users, 
   Bell, 
   Settings, 
-  Menu, 
   X,
   LogOut,
   Calendar,

@@ -151,7 +151,6 @@ const UserRegistrationTrendChart: React.FC<UserRegistrationTrendChartProps> = ({
               const currentValue = context.parsed.y;
               const change = currentValue - prevValue;
               const changeText = change > 0 ? `+${change}` : change.toString();
-              const changeColor = change > 0 ? '#10B981' : change < 0 ? '#EF4444' : '#6B7280';
               return `📈 Change: ${changeText}`;
             }
             return '🎯 First data point';

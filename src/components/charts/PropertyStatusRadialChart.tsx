@@ -135,7 +135,7 @@ const PropertyStatusRadialChart: React.FC<PropertyStatusRadialChartProps> = ({ d
             const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
             return `Properties: ${value} (${percentage}%)`;
           },
-          afterLabel: function(context: any) {
+          afterLabel: function() {
             return 'Click to see details';
           },
         },

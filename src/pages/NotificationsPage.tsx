@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Bell, Search, Filter, Plus, RefreshCw, Trash2, CheckCircle, 
-  Mail, Calendar, Users, AlertCircle, Send, Target, XCircle
+  Calendar, AlertCircle, Target, XCircle, Send
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import MobileMenuButton from '../components/MobileMenuButton';

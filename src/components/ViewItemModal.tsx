@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Building2, Tag, Bed, MapPin, Star, Calendar, Users, Home, Mail, Phone, Shield } from 'lucide-react';
 import apiService from '../services/api';
-import { useTheme } from '../contexts/ThemeContext';
+// import { useTheme } from '../contexts/ThemeContext';
 
 interface ViewItemModalProps {
   isOpen: boolean;
@@ -11,7 +11,7 @@ interface ViewItemModalProps {
 }
 
 const ViewItemModal: React.FC<ViewItemModalProps> = ({ isOpen, onClose, type, itemId }) => {
-  const { theme } = useTheme();
+  // const { theme } = useTheme();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, Building2, Heart, Bell, TrendingUp, Activity,
+  Users, Building2, Heart, Bell,
   Database, Clock, CheckCircle, AlertCircle, RefreshCw,
-  BarChart3, LineChart, PieChart, LogIn
+  LogIn, Activity
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';

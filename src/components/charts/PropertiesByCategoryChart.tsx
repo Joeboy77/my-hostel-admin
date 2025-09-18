@@ -140,7 +140,7 @@ const PropertiesByCategoryChart: React.FC<PropertiesByCategoryChartProps> = ({ d
             const percentage = ((value / total) * 100).toFixed(1);
             return `Properties: ${value} (${percentage}%)`;
           },
-          afterLabel: function(context: any) {
+          afterLabel: function() {
             return 'Click to see details';
           },
         },

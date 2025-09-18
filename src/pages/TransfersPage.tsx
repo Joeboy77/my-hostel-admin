@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Send, Plus, Eye, X, Clock, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { Send, Eye, X, Clock, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import MobileMenuButton from '../components/MobileMenuButton';
 import { transferService } from '../services/transferService';

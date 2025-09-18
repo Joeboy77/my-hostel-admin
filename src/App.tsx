@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Home, Building2, Users, Bell, Settings, Sun, Moon, LogOut } from 'lucide-react';
-import { useTheme } from './contexts/ThemeContext';
+// Removed unused icon imports
 import { useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
