@@ -84,11 +84,11 @@ export const propertiesService = {
   },
 
   async updateProperty(_id: string, _data: Partial<CreatePropertyData>) {
-    return apiService.updateProperty(id, data);
+    return apiService.updateProperty(_id, _data);
   },
 
   async deleteProperty(_id: string) {
-    return apiService.deleteProperty(id);
+    return apiService.deleteProperty(_id);
   },
 
   async updatePropertyStatus(_id: string, _status: string, _isActive?: boolean) {

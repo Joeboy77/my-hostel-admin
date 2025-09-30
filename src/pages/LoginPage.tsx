@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Building2, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
+// import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { APP_CONFIG } from '../config/env';
@@ -30,7 +30,7 @@ interface LoginResponse {
 }
 
 const LoginPage: React.FC = () => {
-  const { theme } = useTheme();
+  // const { theme } = useTheme();
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState<LoginForm>({
