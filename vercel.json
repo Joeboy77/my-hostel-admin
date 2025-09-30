@@ -3,7 +3,7 @@
   "installCommand": "echo Skipping install",
   "outputDirectory": ".",
   "framework": null,
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/skip-build.html" }
+  "routes": [
+    { "src": "/.*", "dest": "/skip-build.html" }
   ]
 }
