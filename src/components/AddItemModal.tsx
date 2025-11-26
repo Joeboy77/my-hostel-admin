@@ -64,6 +64,11 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
   const [, setFetchingRegionalSections] = useState(false);
   const [properties, setProperties] = useState<any[]>([]);
   const [fetchingProperties, setFetchingProperties] = useState(false);
+  const [existingRoomTypes, setExistingRoomTypes] = useState<any[]>([]);
+  const [fetchingRoomTypes, setFetchingRoomTypes] = useState(false);
+  const [selectedBaseRoomType, setSelectedBaseRoomType] = useState<string>('');
+  const [customRoomTypeName, setCustomRoomTypeName] = useState<string>('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
   
   // State for dynamic lists
   const [amenitiesList, setAmenitiesList] = useState<string[]>([]);
@@ -83,9 +88,9 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
       description: isEdit ? 'Update category details' : 'Create a new property category',
     },
     'room-type': {
-      title: isEdit ? 'Edit Room Type' : 'Add New Room Type',
+      title: isEdit ? 'Edit Room Type Variant' : 'Add Room Type Variant',
       icon: Bed,
-      description: isEdit ? 'Update room type details' : 'Create a new room type with pricing and capacity',
+      description: isEdit ? 'Update this room type variant' : 'Select a base room type and add a new variant with specific amenities and pricing',
     },
     'regional-section': {
       title: isEdit ? 'Edit Regional Section' : 'Add New Regional Section',
@@ -118,11 +123,22 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
     }
   }, [isOpen, type]);
 
+  // Fetch room types when property is selected
+  useEffect(() => {
+    if (isOpen && type === 'room-type' && formData.propertyId && !isEdit) {
+      fetchRoomTypesForProperty(formData.propertyId);
+    }
+  }, [formData.propertyId, isOpen, type, isEdit]);
+
   // Initialize form data when editing
   useEffect(() => {
     if (isOpen && isEdit && editData) {
+      const roomTypeName = editData.name || '';
+      const commonTypes = ['1 in a room', '2 in a room', '3 in a room', '4 in a room'];
+      const isCommonType = commonTypes.includes(roomTypeName);
+      
       setFormData({
-        name: editData.name || '',
+        name: roomTypeName,
         description: editData.description || '',
         mainImageUrl: editData.mainImageUrl || editData.imageUrl || '',
         location: editData.location || '',
@@ -149,11 +165,31 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
       // Set amenities and image URLs lists
       setAmenitiesList(editData.amenities || []);
       setImageUrlsList(editData.additionalImageUrls || []);
+      
+      // Set base room type selection for editing
+      if (isCommonType) {
+        setSelectedBaseRoomType(roomTypeName);
+        setShowCustomInput(false);
+        setCustomRoomTypeName('');
+      } else {
+        setSelectedBaseRoomType('custom');
+        setShowCustomInput(true);
+        setCustomRoomTypeName(roomTypeName);
+      }
+      
+      // Fetch existing room types if property is set
+      if (editData.propertyId || editData.property?.id) {
+        fetchRoomTypesForProperty(editData.propertyId || editData.property?.id);
+      }
     } else if (isOpen && !isEdit) {
       // Reset form data for new items
       setFormData({});
       setAmenitiesList([]);
       setImageUrlsList([]);
+      setSelectedBaseRoomType('');
+      setCustomRoomTypeName('');
+      setShowCustomInput(false);
+      setExistingRoomTypes([]);
     }
   }, [isOpen, isEdit, editData]);
 
@@ -189,9 +225,8 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
     setFetchingProperties(true);
     try {
       const response = await apiService.getAllProperties();
-      console.log('Properties response:', response); // Debug log
+      console.log('Properties response:', response);
       if (response.success && response.data) {
-        // Handle both nested and direct array responses
         const propertiesData = (response.data as any).properties || response.data;
         if (Array.isArray(propertiesData)) {
           setProperties(propertiesData);
@@ -207,6 +242,21 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
       setProperties([]);
     } finally {
       setFetchingProperties(false);
+    }
+  };
+
+  const fetchRoomTypesForProperty = async (propertyId: string) => {
+    setFetchingRoomTypes(true);
+    try {
+      const response = await apiService.getRoomTypesByProperty(propertyId);
+      if (response.success && response.data && Array.isArray(response.data)) {
+        setExistingRoomTypes(response.data.filter((rt: any) => rt.isActive));
+      }
+    } catch (error) {
+      console.error('Error fetching room types:', error);
+      setExistingRoomTypes([]);
+    } finally {
+      setFetchingRoomTypes(false);
     }
   };
 
@@ -850,27 +900,85 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, type, onSu
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-foreground mb-2">
-            Room Type Name *
+            Base Room Type *
           </label>
-          <input
-            type="text"
-            value={formData.name || ''}
-            onChange={(e) => handleInputChange('name', e.target.value)}
+          <select
+            value={selectedBaseRoomType}
+            onChange={(e) => {
+              const value = e.target.value;
+              setSelectedBaseRoomType(value);
+              if (value === 'custom') {
+                setShowCustomInput(true);
+                setFormData({ ...formData, name: '' });
+              } else if (value) {
+                setShowCustomInput(false);
+                setCustomRoomTypeName('');
+                setFormData({ ...formData, name: value });
+              }
+            }}
             className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
               errors.name 
                 ? 'border-destructive bg-destructive/10' 
                 : 'border-border bg-background text-foreground'
             }`}
-            placeholder="Enter room type name"
-          />
+            disabled={!formData.propertyId || fetchingRoomTypes}
+          >
+            <option value="">
+              {!formData.propertyId ? 'Select property first' : fetchingRoomTypes ? 'Loading...' : 'Select base room type'}
+            </option>
+            <option value="1 in a room">1 in a room</option>
+            <option value="2 in a room">2 in a room</option>
+            <option value="3 in a room">3 in a room</option>
+            <option value="4 in a room">4 in a room</option>
+            <option value="custom">Custom (enter your own)</option>
+          </select>
+          {showCustomInput && (
+            <input
+              type="text"
+              value={customRoomTypeName}
+              onChange={(e) => {
+                const value = e.target.value;
+                setCustomRoomTypeName(value);
+                setFormData({ ...formData, name: value });
+              }}
+              className="mt-2 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors border-border bg-background text-foreground"
+              placeholder="Enter custom room type name"
+            />
+          )}
           {errors.name && (
             <p className="mt-1 text-sm text-destructive">{errors.name}</p>
           )}
+          <p className="mt-1 text-sm text-muted-foreground">
+            Select a base room type or create a custom one. You can add multiple variants (different amenities/prices) under the same base type.
+          </p>
         </div>
 
+        {selectedBaseRoomType && formData.propertyId && existingRoomTypes.length > 0 && (
+          <div className="p-4 bg-muted/50 rounded-lg border border-border">
+            <p className="text-sm font-medium text-foreground mb-2">
+              Existing variants for "{selectedBaseRoomType === 'custom' ? customRoomTypeName : selectedBaseRoomType}":
+            </p>
+            {existingRoomTypes
+              .filter((rt: any) => rt.name?.toLowerCase().trim() === (selectedBaseRoomType === 'custom' ? customRoomTypeName.toLowerCase().trim() : selectedBaseRoomType.toLowerCase().trim()))
+              .map((variant: any) => (
+                <div key={variant.id} className="text-xs text-muted-foreground mb-1">
+                  • {variant.description || 'No description'} - {variant.currency}{variant.price} ({variant.billingPeriod?.replace(/_/g, ' ')})
+                  {variant.amenities && variant.amenities.length > 0 && (
+                    <span className="ml-2">- {variant.amenities.slice(0, 3).join(', ')}</span>
+                  )}
+                </div>
+              ))}
+            {existingRoomTypes.filter((rt: any) => rt.name?.toLowerCase().trim() === (selectedBaseRoomType === 'custom' ? customRoomTypeName.toLowerCase().trim() : selectedBaseRoomType.toLowerCase().trim())).length === 0 && (
+              <p className="text-xs text-muted-foreground">No existing variants. This will be the first one.</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-foreground mb-2">
             Capacity *

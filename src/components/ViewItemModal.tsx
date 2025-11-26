@@ -262,6 +262,40 @@ const ViewItemModal: React.FC<ViewItemModalProps> = ({ isOpen, onClose, type, it
                         </div>
                       </div>
                     )}
+
+                    {data.roomTypeGroup?.variants?.length > 0 && (
+                      <div className="mt-4 space-y-3">
+                        <h3 className="font-semibold text-gray-900 dark:text-white">Other configurations for {data.roomTypeGroup.name}</h3>
+                        {data.roomTypeGroup.variants.map((variant: any) => (
+                          <div
+                            key={variant.id}
+                            className={`p-4 rounded-xl border ${variant.id === data.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700'}`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium text-gray-900 dark:text-white">{variant.description || 'No description provided'}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-300">
+                                  {variant.amenities && variant.amenities.length > 0
+                                    ? variant.amenities.slice(0, 3).join(', ')
+                                    : 'No amenities listed'}
+                                  {variant.amenities && variant.amenities.length > 3 && (
+                                    <span className="text-xs text-gray-400"> +{variant.amenities.length - 3} more</span>
+                                  )}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+                                  {variant.currency}{variant.price}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-300">
+                                  {variant.availableRooms} of {variant.totalRooms} rooms
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </>
                 )}
 

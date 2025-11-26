@@ -122,6 +122,10 @@ class ApiService {
     return this.request('/admin/room-types', { method: 'GET' });
   }
 
+  async getRoomTypesByProperty(propertyId: string) {
+    return this.request(`/content/properties/${propertyId}/room-types`, { method: 'GET' });
+  }
+
   async getAllProperties() {
     return this.request('/admin/properties', { method: 'GET' });
   }

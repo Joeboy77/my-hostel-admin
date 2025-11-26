@@ -44,6 +44,11 @@ interface RoomType {
   description: string;
   capacity: number;
   price: number;
+  currency?: string;
+  billingPeriod?: string;
+  amenities?: string[];
+  availableRooms?: number;
+  totalRooms?: number;
   createdAt: string;
 }
 
@@ -80,11 +85,13 @@ const PropertiesPage: React.FC = () => {
     properties: Property[];
     categories: Category[];
     roomTypes: RoomType[];
+    roomTypeGroups: Array<{ key: string; name: string; variants: RoomType[] }>;
     regionalSections: RegionalSection[];
   }>({
     properties: [],
     categories: [],
     roomTypes: [],
+    roomTypeGroups: [],
     regionalSections: [],
   });
 
@@ -124,10 +131,26 @@ const PropertiesPage: React.FC = () => {
         regionalSections = Array.isArray(regionalSectionsRes.data) ? regionalSectionsRes.data : [];
       }
 
+      const groupedRoomTypes = roomTypes.reduce<Array<{ key: string; name: string; variants: RoomType[] }>>((groups, roomType) => {
+        const key = (roomType.name || '').trim().toLowerCase() || roomType.id;
+        const existing = groups.find(group => group.key === key);
+        if (existing) {
+          existing.variants.push(roomType);
+        } else {
+          groups.push({
+            key,
+            name: roomType.name,
+            variants: [roomType],
+          });
+        }
+        return groups;
+      }, []);
+
       setData({
         properties,
         categories,
         roomTypes,
+        roomTypeGroups: groupedRoomTypes,
         regionalSections,
       });
     } catch (error) {
@@ -137,6 +160,7 @@ const PropertiesPage: React.FC = () => {
         properties: [],
         categories: [],
         roomTypes: [],
+        roomTypeGroups: [],
         regionalSections: [],
       });
     } finally {
@@ -512,85 +536,97 @@ const PropertiesPage: React.FC = () => {
   };
 
   const renderRoomTypesTable = () => {
-    // Add null check to prevent map error
-    if (!data.roomTypes || !Array.isArray(data.roomTypes)) {
+    if (!data.roomTypeGroups || data.roomTypeGroups.length === 0) {
       return (
         <div className="p-8 text-center text-muted-foreground">
           <div className="flex flex-col items-center space-y-2">
             <Bed className="w-8 h-8 text-muted-foreground" />
-            <p className="font-medium">Loading room types...</p>
+            <p className="font-medium">No room types found</p>
+            <p className="text-sm">Room types will appear here once they are added</p>
           </div>
         </div>
       );
     }
 
     return (
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="text-xs uppercase bg-muted/50">
-            <tr>
-              <th className="px-6 py-3 text-foreground font-medium">Room Type</th>
-              <th className="px-6 py-3 text-foreground font-medium">Description</th>
-              <th className="px-6 py-3 text-foreground font-medium">Capacity</th>
-              <th className="px-6 py-3 text-foreground font-medium">Price</th>
-              <th className="px-6 py-3 text-foreground font-medium">Created</th>
-              <th className="px-6 py-3 text-foreground font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.roomTypes.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                  <div className="flex flex-col items-center space-y-2">
-                    <Bed className="w-8 h-8 text-muted-foreground" />
-                    <p className="font-medium">No room types found</p>
-                    <p className="text-sm">Room types will appear here once they are added</p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              data.roomTypes.map((roomType) => (
-                <tr key={roomType.id} className="bg-card border-b border-border hover:bg-muted/50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-foreground">{roomType.name}</td>
-                  <td className="px-6 py-4 text-muted-foreground">{roomType.description}</td>
-                  <td className="px-6 py-4 text-foreground">{roomType.capacity} person(s)</td>
-                  <td className="px-6 py-4 text-foreground">${roomType.price}</td>
-                  <td className="px-6 py-4 text-muted-foreground">{new Date(roomType.createdAt).toLocaleDateString()}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex space-x-2">
-                      <button 
-                        onClick={() => handleView(roomType.id, 'room-type')}
-                        className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-                        title="View details"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleEdit(roomType.id, 'room-type')}
-                        className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors"
-                        title="Edit room type"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(roomType.id, 'room-type')}
-                        disabled={deletingItemId === roomType.id}
-                        className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Delete room type"
-                      >
-                        {deletingItemId === roomType.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="space-y-6">
+        {data.roomTypeGroups.map(group => (
+          <div key={group.key} className="border border-border rounded-2xl bg-card">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <div>
+                <p className="text-lg font-semibold text-foreground">{group.name || 'Unnamed room type'}</p>
+                <p className="text-sm text-muted-foreground">{group.variants.length} option{group.variants.length === 1 ? '' : 's'} available</p>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {group.variants.length > 1 ? 'Variants share the same base room' : 'Single configuration'}
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs uppercase bg-muted/50">
+                  <tr>
+                    <th className="px-6 py-3 text-foreground font-medium">Description</th>
+                    <th className="px-6 py-3 text-foreground font-medium">Capacity</th>
+                    <th className="px-6 py-3 text-foreground font-medium">Amenities</th>
+                    <th className="px-6 py-3 text-foreground font-medium">Price</th>
+                    <th className="px-6 py-3 text-foreground font-medium">Availability</th>
+                    <th className="px-6 py-3 text-foreground font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {group.variants.map(variant => (
+                    <tr key={variant.id} className="bg-card border-b border-border hover:bg-muted/50 transition-colors">
+                      <td className="px-6 py-4 text-foreground">
+                        <div className="font-medium">{variant.description || 'No description provided'}</div>
+                        <div className="text-xs text-muted-foreground">{variant.billingPeriod ? `Billing: ${variant.billingPeriod.replace(/_/g, ' ')}` : ' '}</div>
+                      </td>
+                      <td className="px-6 py-4 text-foreground">{variant.capacity} person{variant.capacity === 1 ? '' : 's'}</td>
+                      <td className="px-6 py-4 text-muted-foreground">
+                        {variant.amenities && variant.amenities.length > 0 ? variant.amenities.slice(0, 3).join(', ') : 'No amenities listed'}
+                      </td>
+                      <td className="px-6 py-4 text-foreground">
+                        {variant.currency || ''}{variant.price?.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 text-foreground">
+                        {variant.availableRooms} of {variant.totalRooms}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleView(variant.id, 'room-type')}
+                            className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                            title="View details"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(variant.id, 'room-type')}
+                            className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors"
+                            title="Edit room type"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(variant.id, 'room-type')}
+                            disabled={deletingItemId === variant.id}
+                            className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Delete room type"
+                          >
+                            {deletingItemId === variant.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
       </div>
     );
   };
