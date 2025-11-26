@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Eye, Building2, Tag, Bed, LogIn, RefreshCw } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Building2, Tag, Bed, LogIn, RefreshCw, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import MobileMenuButton from '../components/MobileMenuButton';
 import AddItemModal from '../components/AddItemModal';
 import ViewItemModal from '../components/ViewItemModal';
 import apiService from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 
 interface Property {
   id: string;
@@ -57,6 +58,7 @@ interface RegionalSection {
 
 const PropertiesPage: React.FC = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'properties' | 'categories' | 'room-types' | 'regional-sections'>('properties');
   const [modalOpen, setModalOpen] = useState(false);
@@ -71,6 +73,7 @@ const PropertiesPage: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState<string>('');
   const [deleteItemType, setDeleteItemType] = useState<'property' | 'category' | 'room-type' | 'regional-section'>('property');
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<{
@@ -89,7 +92,6 @@ const PropertiesPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch properties, categories, room types, and regional sections
       const [propertiesRes, categoriesRes, roomTypesRes, regionalSectionsRes] = await Promise.all([
         apiService.getAllProperties(),
         apiService.getAllCategories(),
@@ -97,30 +99,40 @@ const PropertiesPage: React.FC = () => {
         apiService.getAllRegionalSections(),
       ]);
 
-      console.log('API Responses:', { propertiesRes, categoriesRes, roomTypesRes, regionalSectionsRes });
+      let properties: Property[] = [];
+      if (propertiesRes.success && propertiesRes.data) {
+        const data = propertiesRes.data as any;
+        if (Array.isArray(data)) {
+          properties = data;
+        } else if (data.properties && Array.isArray(data.properties)) {
+          properties = data.properties;
+        }
+      }
 
-      // Handle the API response structure properly
-      const properties = (propertiesRes.data as any)?.properties || propertiesRes.data || [];
-      const categories = categoriesRes.data || [];
-      const roomTypes = roomTypesRes.data || [];
-      const regionalSections = (regionalSectionsRes.data as RegionalSection[]) || [];
+      let categories: Category[] = [];
+      if (categoriesRes.success && categoriesRes.data) {
+        categories = Array.isArray(categoriesRes.data) ? categoriesRes.data : [];
+      }
+
+      let roomTypes: RoomType[] = [];
+      if (roomTypesRes.success && roomTypesRes.data) {
+        roomTypes = Array.isArray(roomTypesRes.data) ? roomTypesRes.data : [];
+      }
+
+      let regionalSections: RegionalSection[] = [];
+      if (regionalSectionsRes.success && regionalSectionsRes.data) {
+        regionalSections = Array.isArray(regionalSectionsRes.data) ? regionalSectionsRes.data : [];
+      }
 
       setData({
-        properties: Array.isArray(properties) ? properties : [],
-        categories: Array.isArray(categories) ? categories : [],
-        roomTypes: Array.isArray(roomTypes) ? roomTypes : [],
-        regionalSections: regionalSections,
-      });
-
-      console.log('Processed Data:', {
-        properties: Array.isArray(properties) ? properties : [],
-        categories: Array.isArray(categories) ? categories : [],
-        roomTypes: Array.isArray(roomTypes) ? roomTypes : [],
+        properties,
+        categories,
+        roomTypes,
+        regionalSections,
       });
     } catch (error) {
       console.error('Error fetching data:', error);
       setError('Failed to fetch data. Please try again.');
-      // Initialize with empty arrays to prevent map errors
       setData({
         properties: [],
         categories: [],
@@ -205,28 +217,65 @@ const PropertiesPage: React.FC = () => {
   };
 
   const confirmDelete = async () => {
+    setDeletingItemId(deleteItemId);
     try {
+      let response;
       switch (deleteItemType) {
         case 'property':
-          await apiService.deleteProperty(deleteItemId);
+          response = await apiService.deleteProperty(deleteItemId);
+          if (response.success) {
+            setData(prev => ({
+              ...prev,
+              properties: prev.properties.filter(p => p.id !== deleteItemId)
+            }));
+          }
           break;
         case 'category':
-          await apiService.deleteCategory(deleteItemId);
+          response = await apiService.deleteCategory(deleteItemId);
+          if (response.success) {
+            setData(prev => ({
+              ...prev,
+              categories: prev.categories.filter(c => c.id !== deleteItemId)
+            }));
+          }
           break;
         case 'room-type':
-          await apiService.deleteRoomType(deleteItemId);
+          response = await apiService.deleteRoomType(deleteItemId);
+          if (response.success) {
+            setData(prev => ({
+              ...prev,
+              roomTypes: prev.roomTypes.filter(r => r.id !== deleteItemId)
+            }));
+          }
           break;
         case 'regional-section':
-          await apiService.deleteRegionalSection(deleteItemId);
+          response = await apiService.deleteRegionalSection(deleteItemId);
+          if (response.success) {
+            setData(prev => ({
+              ...prev,
+              regionalSections: prev.regionalSections.filter(s => s.id !== deleteItemId)
+            }));
+          }
           break;
       }
       
-      // Refresh data after successful deletion
-      await fetchData();
-      setDeleteModalOpen(false);
-    } catch (error) {
+      if (response && response.success) {
+        const itemTypeName = deleteItemType.replace('-', ' ');
+        showToast(`${itemTypeName.charAt(0).toUpperCase() + itemTypeName.slice(1)} deleted successfully`, 'success');
+        setDeleteModalOpen(false);
+        setTimeout(() => {
+          fetchData();
+        }, 100);
+      } else {
+        throw new Error(response?.message || 'Failed to delete item');
+      }
+    } catch (error: any) {
       console.error('Error deleting item:', error);
-      alert('Failed to delete item. Please try again.');
+      const errorMessage = error?.responseData?.message || error?.message || 'Failed to delete item. Please try again.';
+      showToast(errorMessage, 'error');
+      await fetchData();
+    } finally {
+      setDeletingItemId(null);
     }
   };
 
@@ -347,9 +396,15 @@ const PropertiesPage: React.FC = () => {
                       </button>
                       <button 
                         onClick={() => handleDelete(property.id, 'property')}
-                        className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                        disabled={deletingItemId === property.id}
+                        className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Delete property"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        {deletingItemId === property.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
                   </td>
@@ -435,9 +490,15 @@ const PropertiesPage: React.FC = () => {
                       </button>
                       <button 
                         onClick={() => handleDelete(category.id, 'category')}
-                        className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                        disabled={deletingItemId === category.id}
+                        className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Delete category"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        {deletingItemId === category.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
                   </td>
@@ -513,9 +574,15 @@ const PropertiesPage: React.FC = () => {
                       </button>
                       <button 
                         onClick={() => handleDelete(roomType.id, 'room-type')}
-                        className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                        disabled={deletingItemId === roomType.id}
+                        className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Delete room type"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        {deletingItemId === roomType.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
                   </td>
@@ -599,9 +666,15 @@ const PropertiesPage: React.FC = () => {
                     </button>
                     <button 
                       onClick={() => handleDelete(section.id, 'regional-section')}
-                      className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                      disabled={deletingItemId === section.id}
+                      className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Delete regional section"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      {deletingItemId === section.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
                 </td>
@@ -810,9 +883,17 @@ const PropertiesPage: React.FC = () => {
               </button>
               <button
                 onClick={confirmDelete}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                disabled={deletingItemId !== null}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
               >
-                Delete
+                {deletingItemId !== null ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Delete</span>
+                )}
               </button>
             </div>
           </div>

@@ -111,8 +111,7 @@ export const propertiesService = {
   },
 
   async deleteCategory(_id: string) {
-    // We'll need to add this method to ApiService
-    return apiService.getAllCategories(); // Temporary fix
+    return apiService.deleteCategory(_id);
   },
 
   // Room Types
@@ -125,12 +124,10 @@ export const propertiesService = {
   },
 
   async updateRoomType(_id: string, _data: Partial<CreateRoomTypeData>) {
-    // We'll need to add this method to ApiService
-    return apiService.getAllRoomTypes(); // Temporary fix
+    return apiService.getAllRoomTypes();
   },
 
   async deleteRoomType(_id: string) {
-    // We'll need to add this method to ApiService
-    return apiService.getAllRoomTypes(); // Temporary fix
+    return apiService.deleteRoomType(_id);
   }
 }; 
