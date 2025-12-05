@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Users, Search, Eye, Trash2, RefreshCw,
   ChevronLeft, ChevronRight, AlertCircle, LogIn,
-  UserCheck, Activity, Mail, Phone, MapPin, UserX
+  UserCheck, Activity, Mail, Phone, UserX
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
@@ -14,8 +14,7 @@ interface User {
   id: string;
   fullName: string;
   email: string;
-  phoneNumber: string;
-  location: string;
+  phoneNumber?: string | null;
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   isActive: boolean;
@@ -367,14 +366,8 @@ const UsersPage: React.FC = () => {
                                   </div>
                                   <div className="flex items-center space-x-1 mt-1">
                                     <Phone className="w-3 h-3 text-muted-foreground" />
-                                    <span>{user.phoneNumber}</span>
+                                    <span>{user.phoneNumber || 'N/A'}</span>
                                   </div>
-                                  {user.location && (
-                                    <div className="flex items-center space-x-1 mt-1">
-                                      <MapPin className="w-3 h-3 text-muted-foreground" />
-                                      <span className="text-xs text-muted-foreground">{user.location}</span>
-                                    </div>
-                                  )}
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">

@@ -317,15 +317,8 @@ const ViewItemModal: React.FC<ViewItemModalProps> = ({ isOpen, onClose, type, it
                       
                       <div className="flex items-center space-x-2">
                         <Phone className="w-4 h-4 text-green-500" />
-                        <span className="text-gray-700 dark:text-gray-300">{data.phoneNumber}</span>
+                        <span className="text-gray-700 dark:text-gray-300">{data.phoneNumber || 'N/A'}</span>
                       </div>
-                      
-                      {data.location && (
-                        <div className="flex items-center space-x-2">
-                          <MapPin className="w-4 h-4 text-red-500" />
-                          <span className="text-gray-700 dark:text-gray-300">{data.location}</span>
-                        </div>
-                      )}
                       
                       <div className="flex items-center space-x-2">
                         <Shield className="w-4 h-4 text-purple-500" />
